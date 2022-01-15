@@ -9,6 +9,7 @@ trait Indicator extends Serializable {
   protected val close: String = "close"
   protected val idAux: String = s"${id}_aux"
   protected val closeAux: String = s"${close}_aux"
+  def calculate(df: DataFrame): DataFrame
 
   sealed trait TimeOperation
 
@@ -51,4 +52,4 @@ trait Indicator extends Serializable {
   }
 }
 
-trait MA extends Indicator
+trait SignalIndicator extends Indicator with Signal

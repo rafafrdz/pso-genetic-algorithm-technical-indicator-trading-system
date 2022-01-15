@@ -1,9 +1,9 @@
 package mf.dabi.pso.techIndicatorTradingSystem.finance.indicators
 
-import org.apache.spark.sql.functions.{last, lit, max, min}
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Column, DataFrame}
 
-sealed case class GSTO(period: Int) extends Indicator {
+sealed case class GSTO(period: Int) extends SignalIndicator {
   final val name: String = "STO"
   final val ref: String = s"$name$period".toLowerCase
 
@@ -20,6 +20,13 @@ sealed case class GSTO(period: Int) extends Indicator {
     val lastClose: Column = last(closeAux)
     (lit(100) * ((lastClose - lowestPrice) / (highestPrice - lowestPrice))).as(ref)
   }
+
+  /** Signal.
+   * paper */
+  val signal: Column =
+    when(col(ref).geq(80), Sell.value)
+      .when(col(ref).leq(20), Buy.value)
+      .otherwise(Hold.value).as(refSignal)
 }
 
 object STO extends GSTO(14)

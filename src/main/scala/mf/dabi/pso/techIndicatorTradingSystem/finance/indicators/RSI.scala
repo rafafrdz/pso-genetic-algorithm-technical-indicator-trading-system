@@ -1,10 +1,10 @@
 package mf.dabi.pso.techIndicatorTradingSystem.finance.indicators
 
-import org.apache.spark.sql.functions.{lit, negate, when}
+import org.apache.spark.sql.functions.{col, lit, negate, when}
 import org.apache.spark.sql.{Column, DataFrame}
 
 
-sealed case class GRSI(period: Int) extends Indicator {
+sealed case class GRSI(period: Int) extends SignalIndicator {
   final val name: String = "RSI"
   final val ref: String = s"$name$period".toLowerCase
 
@@ -29,6 +29,13 @@ sealed case class GRSI(period: Int) extends Indicator {
   def rs(df: DataFrame, emaObj: EMA): Column = emaObj.ema(df, u) / emaObj.ema(df, d)
 
   def rsi(rs: Column): Column = (lit(100) - (lit(100) / (lit(1) + rs))).as(ref)
+
+  /** Signal.
+   * paper */
+  val signal: Column =
+    when(col(ref).geq(70), Sell.value)
+      .when(col(ref).leq(30), Buy.value)
+      .otherwise(Hold.value).as(refSignal)
 }
 
 object RSI extends GRSI(14)

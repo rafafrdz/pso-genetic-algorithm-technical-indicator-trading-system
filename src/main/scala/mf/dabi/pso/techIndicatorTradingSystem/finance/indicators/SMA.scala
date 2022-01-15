@@ -1,9 +1,12 @@
 package mf.dabi.pso.techIndicatorTradingSystem.finance.indicators
 
-import org.apache.spark.sql.functions.sum
+import org.apache.spark.sql.functions.{col, sum, when}
 import org.apache.spark.sql.{Column, DataFrame}
 
-sealed case class SMA(period: Int) extends MA {
+/** Info.
+ * https://www.investopedia.com/terms/s/sma.asp
+ * */
+sealed case class SMA(period: Int) extends SignalIndicator {
   final val name: String = "SMA"
   final val ref: String = s"$name$period".toLowerCase
 
@@ -18,6 +21,12 @@ sealed case class SMA(period: Int) extends MA {
       .groupBy(dfIndicator(id)).agg(aggCol)
   }
 
+  /** Signal.
+   * paper */
+  val signal: Column =
+    when(col(close).gt(col(ref)), Buy.value)
+      .when(col(close).lt(col(ref)), Sell.value)
+      .otherwise(Hold.value).as(refSignal)
 }
 
 object SMA20 extends SMA(20)

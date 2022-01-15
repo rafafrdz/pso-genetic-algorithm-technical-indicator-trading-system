@@ -1,13 +1,13 @@
 package mf.dabi.pso.techIndicatorTradingSystem.finance.indicators
 
-import org.apache.spark.sql.functions.{last, lit, max, min}
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Column, DataFrame}
 
 /** Info.
  * https://www.investopedia.com/terms/w/williamsr.asp
  * https://www.metatrader5.com/es/terminal/help/indicators/oscillators/wpr
  * */
-sealed case class GWLLR(period: Int) extends Indicator {
+sealed case class GWLLR(period: Int) extends SignalIndicator {
   final val name: String = "WllR"
   final val ref: String = s"$name$period".toLowerCase
 
@@ -24,6 +24,13 @@ sealed case class GWLLR(period: Int) extends Indicator {
     val lastClose: Column = last(closeAux)
     (lit(-100) * ((highestPrice - lastClose) / (highestPrice - lowestPrice))).as(ref)
   }
+
+  /** Signal.
+   * paper */
+  val signal: Column =
+    when(col(ref).geq(80), Sell.value)
+      .when(col(ref).leq(20), Buy.value)
+      .otherwise(Hold.value).as(refSignal)
 }
 
 object WLLR extends GWLLR(14)

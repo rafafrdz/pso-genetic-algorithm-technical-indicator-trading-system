@@ -4,7 +4,7 @@ import org.apache.spark.sql.expressions.{Window, WindowSpec}
 import org.apache.spark.sql.functions.{lag, lit}
 import org.apache.spark.sql.{Column, DataFrame}
 
-sealed case class EMA(period: Int) extends MA {
+sealed case class EMA(period: Int) extends Indicator {
   val name: String = "EMA"
   val ref: String = s"$name$period".toLowerCase
 
@@ -27,6 +27,7 @@ sealed case class EMA(period: Int) extends MA {
     lit(factor) * aux(period)
   }
 
+  def signal(df: DataFrame): DataFrame = df // todo. find signal
 }
 
 object EMA12 extends EMA(12)
