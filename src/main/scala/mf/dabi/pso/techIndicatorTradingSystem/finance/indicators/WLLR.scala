@@ -28,8 +28,8 @@ sealed case class GWLLR(period: Int) extends SignalIndicator {
   /** Signal.
    * paper */
   val signal: Column =
-    when(col(ref).geq(80), Sell.value)
-      .when(col(ref).leq(20), Buy.value)
+    when(col(ref).leq(-80), Sell.value)
+      .when(col(ref).geq(-20), Buy.value)
       .otherwise(Hold.value).as(refSignal)
 }
 
