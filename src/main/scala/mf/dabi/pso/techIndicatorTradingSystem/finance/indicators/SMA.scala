@@ -4,22 +4,18 @@ import org.apache.spark.sql.functions.sum
 import org.apache.spark.sql.{Column, DataFrame}
 
 sealed case class SMA(period: Int) extends MA {
-  protected final val name: String = "SMA"
-  protected final val ref: String = s"$name$period".toLowerCase
-  private final val id: String = "id"
-  private final val idAux: String = s"${id}_aux"
-  private final val close: String = "close"
-  private final val closeAux: String = "closeAux"
+  final val name: String = "SMA"
+  final val ref: String = s"$name$period".toLowerCase
 
   def calculate(df: DataFrame): DataFrame = {
-    val dfIndicator: DataFrame = df.select(id, close).where(df(id).geq(period))
-    val dfAux: DataFrame = dfIndicator.withColumn(idAux, dfIndicator(id)).withColumn(closeAux, dfIndicator(close))
-
-    val joinExpr: Column = dfIndicator(id).geq(dfAux(idAux) - period) && dfIndicator(id).lt(dfAux(idAux))
-    val join = dfIndicator.join(dfAux, joinExpr).select(dfIndicator(id), dfAux(closeAux))
+    val intervalObj: Interval = interval(df, period)
+    val (dfIndicator, dfAux, intervalDF): (DataFrame, DataFrame, DataFrame) = intervalObj.deploy()
 
     val aggCol: Column = (sum(dfAux(closeAux)) / period).as(ref)
-    join.groupBy(dfIndicator(id)).agg(aggCol)
+
+    intervalDF
+      .select(dfIndicator(id), dfAux(closeAux))
+      .groupBy(dfIndicator(id)).agg(aggCol)
   }
 
 }

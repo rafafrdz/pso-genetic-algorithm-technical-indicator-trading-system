@@ -5,10 +5,8 @@ import org.apache.spark.sql.functions.{lag, lit}
 import org.apache.spark.sql.{Column, DataFrame}
 
 sealed case class EMA(period: Int) extends MA {
-  protected final val name: String = "EMA"
-  protected final val ref: String = s"$name$period".toLowerCase
-  private final val id: String = "id"
-  private final val close: String = "close"
+  val name: String = "EMA"
+  val ref: String = s"$name$period".toLowerCase
 
   private final val factor: Double = 2.0 / (period + 1.0)
 
@@ -23,7 +21,9 @@ sealed case class EMA(period: Int) extends MA {
 
   private def emaFunc(close: Column, factor: Double, period: Int): Column = {
     val window: WindowSpec = Window.partitionBy(lit(1)).orderBy(lit(1))
+
     def aux(m: Int): Column = if (m == 0) close else aux(m - 1) + lit(Math.pow(1 - factor, m)) * lag(close, m).over(window)
+
     lit(factor) * aux(period)
   }
 
