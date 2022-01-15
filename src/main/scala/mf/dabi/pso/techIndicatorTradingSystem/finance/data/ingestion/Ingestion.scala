@@ -28,5 +28,5 @@ trait Ingestion {
 
   def ingest[T <: AnalyzedFinanceObject](objs: T*): Unit = objs
     .map(obj => finance[T](obj.fileName, parquetPath, obj.df))
-    .foreach(obj => Write(obj.df).parquet(obj.output))
+    .foreach(obj => Write(obj.df.repartition(6)).parquet(obj.output))
 }

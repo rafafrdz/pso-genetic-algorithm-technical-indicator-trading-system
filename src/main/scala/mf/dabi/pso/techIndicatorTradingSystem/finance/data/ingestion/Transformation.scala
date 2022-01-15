@@ -20,7 +20,7 @@ trait Transformation extends Ingestion {
   }
 
   def transformation[T <: AnalyzedFinanceObject](objs: T*): Unit =
-    objs.foreach(obj => Write(obj.df.repartition(124)).parquet(obj.path))
+    objs.foreach(obj => Write(obj.df.repartition(6)).parquet(obj.path))
 
 
 }
