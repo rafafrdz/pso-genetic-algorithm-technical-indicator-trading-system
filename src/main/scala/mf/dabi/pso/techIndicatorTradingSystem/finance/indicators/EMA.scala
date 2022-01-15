@@ -14,9 +14,11 @@ sealed case class EMA(period: Int) extends MA {
 
   def calculate(df: DataFrame): DataFrame = {
     val dfIndicator: DataFrame = df.select(id, close)
-    val emaCol: Column = emaFunc(dfIndicator(close), factor, period).as(ref)
+    val emaCol: Column = ema(dfIndicator)
     dfIndicator.select(dfIndicator(id), emaCol).where(df(id).gt(period))
   }
+
+  def ema(df: DataFrame, field: String = close): Column = emaFunc(df(field), factor, period).as(ref)
 
 
   private def emaFunc(close: Column, factor: Double, period: Int): Column = {
