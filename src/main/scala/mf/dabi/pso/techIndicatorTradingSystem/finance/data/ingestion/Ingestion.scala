@@ -1,4 +1,4 @@
-package mf.dabi.pso.techIndicatorTradingSystem.finance.data
+package mf.dabi.pso.techIndicatorTradingSystem.finance.data.ingestion
 
 import mf.dabi.pso.techIndicatorTradingSystem.finance.data.adt.AnalyzedFinanceObject
 import mf.dabi.pso.techIndicatorTradingSystem.finance.data.adt.FinanceObject.finance
@@ -17,7 +17,7 @@ trait Ingestion {
 
   def folder: String
 
-  private def fsPath(fileType: String): String = s"src/main/resources/historical-data/$fileType/$folder"
+  protected def fsPath(fileType: String): String = s"src/main/resources/historical-data/$fileType/$folder"
 
   final def getFinancialObject[T <: AnalyzedFinanceObject]: List[T] = {
     val files: Array[String] = fileName(csvPath)
@@ -26,7 +26,7 @@ trait Ingestion {
     files.zip(dfs).map { case (fname, df) => finance[T](fname, "", df) }.toList
   }
 
-  def persist[T <: AnalyzedFinanceObject](objs: T*): Unit = objs
+  def ingest[T <: AnalyzedFinanceObject](objs: T*): Unit = objs
     .map(obj => finance[T](obj.fileName, parquetPath, obj.df))
     .foreach(obj => Write(obj.df).parquet(obj.output))
 }

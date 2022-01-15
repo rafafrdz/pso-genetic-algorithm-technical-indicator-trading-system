@@ -1,4 +1,4 @@
-package mf.dabi.pso.techIndicatorTradingSystem.finance.data
+package mf.dabi.pso.techIndicatorTradingSystem.finance.data.ingestion
 
 import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.types.{DecimalType, StructField, StructType}
