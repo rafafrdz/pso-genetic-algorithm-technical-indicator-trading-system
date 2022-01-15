@@ -1,7 +1,10 @@
 *.class
 *.log
+*.crc
+*.parquet.crc
 /.bsp/
 /.idea/
 /null/
 /target/
 /project/target/
+/src/main/resources/historical-data/parquet/
