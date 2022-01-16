@@ -53,4 +53,4 @@ trait Indicator extends Serializable {
   }
 }
 
-trait SignalIndicator extends Indicator with Signal
+trait SignalIndicator extends Indicator with Signal with Weight

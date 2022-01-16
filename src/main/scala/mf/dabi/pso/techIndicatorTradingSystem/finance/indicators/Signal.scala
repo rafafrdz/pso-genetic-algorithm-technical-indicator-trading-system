@@ -22,7 +22,8 @@ object Signal {
     val persist: DataFrame = getIndicators(df, signals: _*)
     val cols: Array[Column] = persist.columns.map(f => persist(f))
     val signalsCols: Seq[Column] = signals.map(s => s.signal)
-    val allCols: Array[Column] = cols ++ signalsCols
+    val weightCols: Seq[Column] = signals.map(s => s.weight)
+    val allCols: Array[Column] = cols ++ signalsCols ++ weightCols
     persist.select(allCols: _*)
   }
 

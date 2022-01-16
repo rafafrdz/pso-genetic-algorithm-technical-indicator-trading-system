@@ -19,7 +19,7 @@ object Stock extends Sparkable with Ingestion with Transformation {
   case class StockSchema(date: Date, open: Decimal, high: Decimal, low: Decimal, close: Decimal, adj: Decimal, volume: Decimal)
 
   def main(args: Array[String]): Unit = {
-    ingest(stocks: _*)
+//    ingest(stocks: _*)
     transformation(stocksSignals: _*)
   }
 }
