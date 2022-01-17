@@ -1,5 +1,6 @@
 package mf.dabi.pso.techIndicatorTradingSystem.finance.indicators
 
+import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{Column, DataFrame}
 
 trait Signal {
@@ -22,31 +23,15 @@ object Signal {
     val persist: DataFrame = getIndicators(df, signals: _*)
     val cols: Array[Column] = persist.columns.map(f => persist(f))
     val signalsCols: Seq[Column] = signals.map(s => s.signal)
-    val weightCols: Seq[Column] = signals.map(s => s.weight)
+
+    val weightRawCols: Seq[Column] = signals.map(s => s.weightRaw)
+    val sumWeight: Column = signals.map(s => col(s.refWeightRaw)).reduce(_+_)
+    val weightCols: Seq[Column] = signals.map(s => s.weight(sumWeight))
+
+    val preCols: Array[Column] = cols ++ signalsCols ++ weightRawCols
     val allCols: Array[Column] = cols ++ signalsCols ++ weightCols
-    persist.select(allCols: _*)
+    persist.select(preCols: _*).select(allCols:_*)
   }
 
 }
 
-sealed trait Order extends Serializable {
-  val value: Int
-}
-
-case object Buy extends Order {
-  val value: Int = 1
-
-  override def toString: String = "BUY"
-}
-
-case object Sell extends Order {
-  val value: Int = -1
-
-  override def toString: String = "SELL"
-}
-
-case object Hold extends Order {
-  val value: Int = 0
-
-  override def toString: String = "HOLD"
-}
