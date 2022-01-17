@@ -12,11 +12,12 @@ import scala.util.Try
 
 object TradingFunction extends Sparkable {
 
+  /** Importante */
+  val INITIAL_CAPITAL: Double = 10000.0
 
   val capital: String = "capital"
   val initialCapitalField: String = "initialCapital"
-  private def initialCapitalCol(minId: Int): Column = when(col(id) === minId, lit(10000.0))
-  def getMinId(df: DataFrame): Int = df.select(min(id).as("min")).collect().apply(0).getAs[Int]("min")
+
   val close: String = "close"
   val open: String = "open"
   val acciones: String = "acciones"
@@ -25,12 +26,26 @@ object TradingFunction extends Sparkable {
   val id: String = "id"
   val trAux: String = "tr"
 
+
   def addCols(df: DataFrame, col: Column*): DataFrame = {
     val origincols: Array[Column] = df.columns.map(df(_))
     val allCols: Array[Column] = origincols ++ col
-    df.select(allCols:_*)
+    df.select(allCols: _*)
   }
-  def decision(df: DataFrame, signals: SignalIndicator*): DataFrame = addCols(df, decision(signals:_*))
+
+  private def initialCapitalCol(minId: Int): Column = when(col(id) === minId, lit(INITIAL_CAPITAL))
+
+  def getMinId(df: DataFrame): Int = df.select(min(id).as("min")).collect().apply(0).getAs[Int]("min")
+
+  def getMaxId(df: DataFrame): Int = df.select(max(id).as("max")).collect().apply(0).getAs[Int]("max")
+
+  def finalPortfolio(df: DataFrame): Double = {
+    val maxId: Int = getMaxId(df)
+    df.where(col(id) === maxId).select(capital).collect().apply(0).getAs[Double](capital)
+  }
+
+  def decision(df: DataFrame, signals: SignalIndicator*): DataFrame = addCols(df, decision(signals: _*))
+
   def decision(signals: SignalIndicator*): Column = {
     val num: Column = signals.map(s => col(s.refSignal) * col(s.refWeight)).reduce(_ + _)
     val den: Column = signals.map(s => col(s.refWeight)).reduce(_ + _)
@@ -40,7 +55,7 @@ object TradingFunction extends Sparkable {
 
   /** Trading Function */
   private val tradingFunc: (Double, Seq[Row]) => Option[Seq[(Int, Double, Int)]] =
-    (initialCapital: Double, trading: Seq[Row]) => Try{
+    (initialCapital: Double, trading: Seq[Row]) => Try {
 
       /** todo. add criterio de compra (peso) para que no sea comprar con todo el capital o vender todas las acciones */
       def buysell(decision: Double, close: Double, capitalNow: Double, accionesNow: Int): (Double, Int) = {
@@ -60,7 +75,7 @@ object TradingFunction extends Sparkable {
         .scanLeft(initalValue)((acc, curr) => {
           val decisionP = curr.getAs[Double](curr.fieldIndex(decisionField))
           val closeP = curr.getAs[Double](close)
-          val (capitalNow, accionesNow) = ( acc._2, acc._3)
+          val (capitalNow, accionesNow) = (acc._2, acc._3)
           val (capital, acciones) = buysell(decisionP, closeP, capitalNow, accionesNow)
           (curr.getAs[Int]("id"), capital, acciones)
         })
@@ -68,32 +83,37 @@ object TradingFunction extends Sparkable {
   val tradingUDF: UserDefinedFunction = udf(tradingFunc)
 
 
-
   /** https://stackoverflow.com/questions/58959703/calculate-value-based-on-value-from-same-column-of-the-previous-row-in-spark */
   def trading(df: DataFrame): DataFrame = {
     val minId: Int = getMinId(df)
     val dfAux = df.withColumn(capital, initialCapitalCol(minId))
-      .withColumn(close,col(close).cast(DoubleType))
+      .withColumn(close, col(close).cast(DoubleType))
 
     val initialCapital: Column = first(col(capital), ignoreNulls = true).cast(DoubleType).as(initialCapitalField)
     val setData: Column = collect_list(struct(id, open, close, decisionField)).as(tradingField)
     val tradingColumn: Column = tradingUDF(col(initialCapitalField), col(tradingField))
     val (idCol, capitalCol, accionesCol): (Column, Column, Column) =
-      (col(s"${trAux}._1").as(id),col(s"${trAux}._2").as(capital),col(s"${trAux}._3").as(acciones))
+      (col(s"${trAux}._1").as(id), col(s"${trAux}._2").as(capital), col(s"${trAux}._3").as(acciones))
 
     dfAux.orderBy(col(id).asc).groupBy(lit(1)).agg(initialCapital, setData).select(explode(tradingColumn).as(trAux)).select(idCol, capitalCol, accionesCol)
   }
 
-  def fitnessFunction(df: DataFrame, signals: SignalIndicator*): DataFrame = {
+  def tradingFunction(df: DataFrame, signals: SignalIndicator*): DataFrame = {
     val decisionDF: DataFrame = decision(df, signals: _*)
     val tradingDF: DataFrame = trading(decisionDF)
     decisionDF.join(tradingDF, id)
   }
 
+  def fitnessFunc(df: DataFrame, signals: SignalIndicator*): Double = {
+    val tradingDF: DataFrame = tradingFunction(df, signals: _*)
+    val fport: Double = finalPortfolio(tradingDF)
+    (fport - INITIAL_CAPITAL) / INITIAL_CAPITAL
+  }
+
   def main(args: Array[String]): Unit = {
     val df: DataFrame = spark.read.parquet("src/main/resources/historical-data/data/stocks/AAL")
-    val fitDF = fitnessFunction(df, indd1: _*)
-    fitDF.show(500, false)
+    val fitValue = fitnessFunc(df, indd1: _*)
+    println(fitValue)
     0
   }
 
