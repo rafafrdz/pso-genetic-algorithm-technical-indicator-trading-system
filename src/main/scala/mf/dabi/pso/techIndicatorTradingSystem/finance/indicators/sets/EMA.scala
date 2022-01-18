@@ -1,5 +1,6 @@
-package mf.dabi.pso.techIndicatorTradingSystem.finance.indicators
+package mf.dabi.pso.techIndicatorTradingSystem.finance.indicators.sets
 
+import mf.dabi.pso.techIndicatorTradingSystem.finance.indicators.Indicator
 import org.apache.spark.sql.expressions.{Window, WindowSpec}
 import org.apache.spark.sql.functions.{lag, lit}
 import org.apache.spark.sql.{Column, DataFrame}

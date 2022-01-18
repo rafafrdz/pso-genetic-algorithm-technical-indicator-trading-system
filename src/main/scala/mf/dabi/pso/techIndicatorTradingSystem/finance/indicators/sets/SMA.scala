@@ -1,5 +1,6 @@
-package mf.dabi.pso.techIndicatorTradingSystem.finance.indicators
+package mf.dabi.pso.techIndicatorTradingSystem.finance.indicators.sets
 
+import mf.dabi.pso.techIndicatorTradingSystem.finance.indicators.{Buy, Hold, Sell, SignalIndicator}
 import org.apache.spark.sql.functions.{col, sum, when}
 import org.apache.spark.sql.{Column, DataFrame}
 
