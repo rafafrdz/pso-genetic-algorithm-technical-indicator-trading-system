@@ -10,3 +10,4 @@
 /project/target/
 /src/main/resources/historical-data/parquet/
 /src/main/resources/historical-data/data/
+/src/main/resources/historical-data/experiment/

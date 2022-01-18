@@ -12,7 +12,7 @@ trait Transformation extends Ingestion {
   self: Sparkable =>
 
   val dataPath: String = fsPath("data")
-  val simulationPath: String = fsPath("data")
+  val experimentPath: String = fsPath("experiment")
 
   final def getFinancialSignal[T <: AnalyzedFinanceObject](ticket: String, signals: SignalIndicator*): T = {
     val parquet: DataFrame = Read.parquet(s"$parquetPath/$ticket")

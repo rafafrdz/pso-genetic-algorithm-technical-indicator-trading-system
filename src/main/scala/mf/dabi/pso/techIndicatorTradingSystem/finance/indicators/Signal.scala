@@ -14,6 +14,7 @@ trait Signal {
 object Signal {
 
   val indd1: List[SignalIndicator] = List(SMA20, SMA100, SMA200, SMA500, MACD, RSI, STO, WLLR)
+  val indd2: List[SignalIndicator] = List(SMA20, SMA100, MACD, RSI, WLLR)
 
   def getIndicators(df: DataFrame, indicators: Indicator*): DataFrame = {
     val persist: DataFrame = df.persist()
@@ -35,7 +36,7 @@ object Signal {
     val signals: Seq[SignalIndicator] = signalConf.map(c => c.signal)
 
     val cols: Array[Column] = signalDF.columns.map(f => signalDF(f))
-    val weightRawCols: Seq[Column] = signalConf.map(c => c.signal.customWeight(c.weight))
+    val weightRawCols: Seq[Column] = signalConf.map(c => if(c.signal.refWeight.contains("amount")) c.signal.customWeight(math.abs(c.weight)) else c.signal.customWeight(c.weight))
     val sumWeight: Column = signals.map(s => col(s.refWeightRaw)).reduce(_ + _)
     val weightCols: Seq[Column] = signals.map(s => s.weight(sumWeight))
 

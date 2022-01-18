@@ -3,11 +3,12 @@ package mf.dabi.pso.techIndicatorTradingSystem.algorithm
 import mf.dabi.pso.techIndicatorTradingSystem.algorithm.particle.{ParticleSolution, ParticleTraveller}
 import mf.dabi.pso.techIndicatorTradingSystem.algorithm.space.SearchSpace
 import mf.dabi.pso.techIndicatorTradingSystem.algorithm.space.SearchSpace._
-import mf.dabi.pso.techIndicatorTradingSystem.finance.data.ingestion.Simulation
+import mf.dabi.pso.techIndicatorTradingSystem.finance.data.simulation.Simulation
 import mf.dabi.pso.techIndicatorTradingSystem.finance.indicators.SignalIndicator
 import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.types.DecimalType
 import org.apache.spark.sql.{Column, DataFrame}
+import org.slf4j.Logger
 
 import scala.annotation.tailrec
 
@@ -25,16 +26,18 @@ object PSOAlgorithm {
    * @param phiP       strenght of attraction factor to best particle in the one particle's history
    * @param phiG       strenght of attraction factor respect all best particle in the swarm
    * @param ticker     Ticker of financial product
+   * @param from       Date from which the experiment is performed. Format: yyyy-mm-dd
    * @param indicators Indicatos to analyze
    * @param f          fitness function
    * @return
    */
   def algorithm(eval: Int, swarmSize: Int, space: SearchSpace)
                (omegaG: Limit[Double], phiP: Limit[Double], phiG: Limit[Double])
-               (ticker: String, indicators: List[SignalIndicator], f: DataFrame => Double): ParticleSolution = {
+               (ticker: String, from: String, indicators: List[SignalIndicator], f: DataFrame => Double)(implicit logger: Logger): ParticleSolution = {
+    logger.h2("[PSO Algorithm] Initialized")
 
     implicit val ind: List[SignalIndicator] = indicators
-    val swarm0: SwarmTraveller = swarmT(swarmSize, space)(ticker, indicators)
+    val swarm0: SwarmTraveller = swarmTFrom(swarmSize, space)(ticker, from, indicators)
     val omega: Vector[Double] = incremental(omegaG._1, omegaG._2, eval, true)
     val phip: Vector[Double] = incremental(phiP._1, phiP._2, eval)
     val phig: Vector[Double] = incremental(phiG._1, phiG._2, eval, true)
@@ -61,10 +64,13 @@ object PSOAlgorithm {
 
     @tailrec
     def aux(acc: Int)(swarm: SwarmTraveller): ParticleSolution = {
+      val iteration: Int = eval - acc + 1
+      logger.h3(s"Iteration: ${iteration}/$eval")
       val tradings: SwarmSolution = doTrading(swarm)(f, indicators)
       val bestParticle: ParticleSolution = tradings.reduceLeft((acc, p) => optimalPS(acc, p))
-      val tradingsW: SwarmSolution = tradings.map(p => p.dropDecision())
+      lazy val tradingsW: SwarmSolution = tradings.map(p => p.reset())
 
+      logger.h3(s"[Best Particle] Iteration: $iteration - Result: ${bestParticle.result} - Weight: ${bestParticle.weight.data.mkString(", ")}")
       lazy val swarmSk: SwarmTraveller = stepSwarm(acc - 1)(tradingsW, bestParticle, Vector.empty[ParticleTraveller])
       if (acc == 0) bestParticle else aux(acc - 1)(swarmSk)
     }
@@ -76,6 +82,15 @@ object PSOAlgorithm {
 
   // //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  def swarmTFrom(swarmSize: Int, space: SearchSpace)(ticker: String, from: String, indicators: List[SignalIndicator]): SwarmTraveller =
+    space.swarm(swarmSize)
+      .zip(space.swarmV(swarmSize))
+      .map { case (w, vel) =>
+        ParticleTraveller(w, vel, Simulation.stock(ticker, from, indicators: _*)(w)) // todo. cambiar esto y parametrizar
+      }
+      .map(pt =>
+        ParticleTraveller(pt.weight, pt.velocity, addVelCol(pt.simulation, pt.velocity, indicators)))
 
   def swarmT(swarmSize: Int, space: SearchSpace)(ticker: String, indicators: List[SignalIndicator]): SwarmTraveller =
     space.swarm(swarmSize)

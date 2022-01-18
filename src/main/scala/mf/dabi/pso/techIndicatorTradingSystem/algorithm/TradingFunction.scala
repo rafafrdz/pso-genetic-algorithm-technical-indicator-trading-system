@@ -1,5 +1,6 @@
 package mf.dabi.pso.techIndicatorTradingSystem.algorithm
 
+import mf.dabi.pso.techIndicatorTradingSystem.experiment.Experiment
 import mf.dabi.pso.techIndicatorTradingSystem.finance.indicators.Signal.indd1
 import mf.dabi.pso.techIndicatorTradingSystem.finance.indicators.SignalIndicator
 import mf.dabi.pso.techIndicatorTradingSystem.settings.Sparkable
@@ -14,7 +15,8 @@ import scala.util.Try
 object TradingFunction extends Sparkable {
 
   /** Importante */
-  val INITIAL_CAPITAL: Double = 10000.0
+  private val INITIAL_CAPITAL: Double = Experiment.INITIAL_CAPITAL
+  private val thresHoldV: Double = Experiment.THRES_HOLD
 
   val capital: String = "capital"
   val initialCapitalField: String = "initialCapital"
@@ -24,10 +26,13 @@ object TradingFunction extends Sparkable {
   val acciones: String = "acciones"
   val decisionField: String = "decision"
   val tradingField: String = "trading"
+  val threasholdField: String = "threashold"
+  val amountField: String = "amount"
+  val amountWeightField: String = s"${amountField}_weight"
   val id: String = "id"
   val trAux: String = "tr"
 
-  private def initialCapitalCol(minId: Int): Column = when(col(id) === minId, lit(INITIAL_CAPITAL))
+  private def initialCapitalCol(minId: Int): Column = when(col(id) === minId, col(amountField))
 
   def getMinId(df: DataFrame): Int = df.select(min(id).as("min")).collect().apply(0).getAs[Int]("min")
 
@@ -49,16 +54,16 @@ object TradingFunction extends Sparkable {
 
   /** Trading Function */
   private val tradingFunc: (Double, Seq[Row]) => Option[Seq[(Int, Double, Int)]] =
-    (initialCapital: Double, trading: Seq[Row]) => Try {
+    (initialCapital: Double, trading: Seq[Row]) =>  Try {
 
       /** todo. add criterio de compra (peso) para que no sea comprar con todo el capital o vender todas las acciones */
-      def buysell(decision: Double, close: Double, capitalNow: Double, accionesNow: Int): (Double, Int) = {
-        lazy val accionesCompra: Int = (capitalNow / close).toInt
+      def buysell(decision: Double, close: Double, capitalNow: Double, amounWeight: Double, accionesNow: Int): (Double, Int) = {
+        lazy val accionesCompra: Int = math.abs(((capitalNow / close) * amounWeight).toInt)
         lazy val capitalVende: Double = capitalNow + (accionesNow * close)
         lazy val capitalCompra: Double = capitalNow - (accionesCompra * close)
 
-        val acciones: Int = if (decision > 0.7) accionesCompra else if (decision < -0.7) 0 else accionesNow
-        val capital: Double = if (decision > 0.7) capitalCompra else if (decision < -0.7) capitalVende else capitalNow
+        val acciones: Int = if (decision > thresHoldV) accionesCompra else if (decision < -thresHoldV) 0 else accionesNow
+        val capital: Double = if (decision > thresHoldV) capitalCompra else if (decision < -thresHoldV) capitalVende else capitalNow
 
         (capital, acciones)
       }
@@ -68,9 +73,10 @@ object TradingFunction extends Sparkable {
       trading.tail
         .scanLeft(initalValue)((acc, curr) => {
           val decisionP = curr.getAs[Double](curr.fieldIndex(decisionField))
+          val amounW = curr.getAs[Double](curr.fieldIndex(amountWeightField))
           val closeP = curr.getAs[Double](close)
           val (capitalNow, accionesNow) = (acc._2, acc._3)
-          val (capital, acciones) = buysell(decisionP, closeP, capitalNow, accionesNow)
+          val (capital, acciones) = buysell(decisionP, closeP, capitalNow, amounW,  accionesNow)
           (curr.getAs[Int]("id"), capital, acciones)
         })
     }.toOption
@@ -82,9 +88,10 @@ object TradingFunction extends Sparkable {
     val minId: Int = getMinId(df)
     val dfAux = df.withColumn(capital, initialCapitalCol(minId))
       .withColumn(close, col(close).cast(DoubleType))
+      .withColumn(amountWeightField, col(amountWeightField).cast(DoubleType))
 
     val initialCapital: Column = first(col(capital), ignoreNulls = true).cast(DoubleType).as(initialCapitalField)
-    val setData: Column = collect_list(struct(id, open, close, decisionField)).as(tradingField)
+    val setData: Column = collect_list(struct(id, open, close, decisionField, amountWeightField)).as(tradingField)
     val tradingColumn: Column = tradingUDF(col(initialCapitalField), col(tradingField))
     val (idCol, capitalCol, accionesCol): (Column, Column, Column) =
       (col(s"${trAux}._1").as(id), col(s"${trAux}._2").as(capital), col(s"${trAux}._3").as(acciones))
@@ -103,14 +110,6 @@ object TradingFunction extends Sparkable {
   def profitFunc(tradingDF: DataFrame): Double = {
     val fport: Double = finalPortfolio(tradingDF)
     (fport - INITIAL_CAPITAL) / INITIAL_CAPITAL
-  }
-
-  def main(args: Array[String]): Unit = {
-    val df: DataFrame = spark.read.parquet("src/main/resources/historical-data/data/stocks/AAPL")
-    val tradingDF: DataFrame = tradingFunc(df, indd1: _*)
-    val fitValue = profitFunc(tradingDF)
-    println(fitValue)
-    0
   }
 
 }

@@ -27,6 +27,7 @@ case class ParticleSolution(weight: Particle, velocity: Particle, result: Double
 
   override def pure(df: DataFrame): ParticleSolution = ParticleSolution(weight, velocity, result, df)
   def dropDecision(): ParticleSolution = ParticleSolution(weight, velocity, result, trading.drop(TradingFunction.decisionField))
+  def reset(): ParticleSolution = ParticleSolution(weight, velocity, result, trading.drop(TradingFunction.decisionField, TradingFunction.capital, TradingFunction.acciones))
 
   def setWeight(w: Particle)(implicit indicator: List[SignalIndicator]): ParticleSolution = pure(ParticleNaughty.setWeight(trading, w))
 
