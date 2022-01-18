@@ -1,13 +1,13 @@
 package mf.dabi.pso.techIndicatorTradingSystem.finance.data
 
-import mf.dabi.pso.techIndicatorTradingSystem.finance.data.ingestion.Schema.{Decimal, Timestamp}
 import mf.dabi.pso.techIndicatorTradingSystem.finance.data.adt.CryptoObject
-import mf.dabi.pso.techIndicatorTradingSystem.finance.data.ingestion.{Ingestion, Schema, Transformation}
+import mf.dabi.pso.techIndicatorTradingSystem.finance.data.ingestion.Schema.{Decimal, Timestamp}
+import mf.dabi.pso.techIndicatorTradingSystem.finance.data.ingestion.{Schema, Simulation}
 import mf.dabi.pso.techIndicatorTradingSystem.finance.indicators.Signal.indd1
 import mf.dabi.pso.techIndicatorTradingSystem.settings.Sparkable
 import org.apache.spark.sql.types.StructType
 
-object Cryptos extends Sparkable with Ingestion with Transformation {
+object Cryptos extends Sparkable with Simulation {
 
   def folder: String = "cryptos"
 

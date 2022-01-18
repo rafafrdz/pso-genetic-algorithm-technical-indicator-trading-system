@@ -3,6 +3,7 @@ package mf.dabi.pso.techIndicatorTradingSystem.algorithm
 import mf.dabi.pso.techIndicatorTradingSystem.finance.indicators.Signal.indd1
 import mf.dabi.pso.techIndicatorTradingSystem.finance.indicators.SignalIndicator
 import mf.dabi.pso.techIndicatorTradingSystem.settings.Sparkable
+import mf.dabi.pso.techIndicatorTradingSystem.utils.DataFrameSuite.addCol
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.DoubleType
@@ -26,13 +27,6 @@ object TradingFunction extends Sparkable {
   val id: String = "id"
   val trAux: String = "tr"
 
-
-  def addCols(df: DataFrame, col: Column*): DataFrame = {
-    val origincols: Array[Column] = df.columns.map(df(_))
-    val allCols: Array[Column] = origincols ++ col
-    df.select(allCols: _*)
-  }
-
   private def initialCapitalCol(minId: Int): Column = when(col(id) === minId, lit(INITIAL_CAPITAL))
 
   def getMinId(df: DataFrame): Int = df.select(min(id).as("min")).collect().apply(0).getAs[Int]("min")
@@ -44,7 +38,7 @@ object TradingFunction extends Sparkable {
     df.where(col(id) === maxId).select(capital).collect().apply(0).getAs[Double](capital)
   }
 
-  def decision(df: DataFrame, signals: SignalIndicator*): DataFrame = addCols(df, decision(signals: _*))
+  def decision(df: DataFrame, signals: SignalIndicator*): DataFrame = addCol(df, decision(signals: _*))
 
   def decision(signals: SignalIndicator*): Column = {
     val num: Column = signals.map(s => col(s.refSignal) * col(s.refWeight)).reduce(_ + _)
@@ -104,15 +98,16 @@ object TradingFunction extends Sparkable {
     decisionDF.join(tradingDF, id)
   }
 
-  def fitnessFunc(df: DataFrame, signals: SignalIndicator*): Double = {
-    val tradingDF: DataFrame = tradingFunction(df, signals: _*)
+  def fitnessFunc(tradingDF: DataFrame): Double = {
+    tradingDF.orderBy(col(id).desc).show(false)
     val fport: Double = finalPortfolio(tradingDF)
     (fport - INITIAL_CAPITAL) / INITIAL_CAPITAL
   }
 
   def main(args: Array[String]): Unit = {
-    val df: DataFrame = spark.read.parquet("src/main/resources/historical-data/data/stocks/AAL")
-    val fitValue = fitnessFunc(df, indd1: _*)
+    val df: DataFrame = spark.read.parquet("src/main/resources/historical-data/data/stocks/AAPL")
+    val tradingDF: DataFrame = tradingFunction(df, indd1: _*)
+    val fitValue = fitnessFunc(tradingDF)
     println(fitValue)
     0
   }
