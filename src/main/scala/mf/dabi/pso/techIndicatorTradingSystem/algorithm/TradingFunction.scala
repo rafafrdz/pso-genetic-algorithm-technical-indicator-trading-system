@@ -92,22 +92,23 @@ object TradingFunction extends Sparkable {
     dfAux.orderBy(col(id).asc).groupBy(lit(1)).agg(initialCapital, setData).select(explode(tradingColumn).as(trAux)).select(idCol, capitalCol, accionesCol)
   }
 
-  def tradingFunction(df: DataFrame, signals: SignalIndicator*): DataFrame = {
-    val decisionDF: DataFrame = decision(df, signals: _*)
+  def tradingFunc(df: DataFrame, indicators: SignalIndicator*): DataFrame = {
+    val decisionDF: DataFrame = decision(df, indicators: _*)
     val tradingDF: DataFrame = trading(decisionDF)
     decisionDF.join(tradingDF, id)
   }
 
-  def fitnessFunc(tradingDF: DataFrame): Double = {
-    tradingDF.orderBy(col(id).desc).show(false)
+  val profit: DataFrame => Double = df => profitFunc(df)
+
+  def profitFunc(tradingDF: DataFrame): Double = {
     val fport: Double = finalPortfolio(tradingDF)
     (fport - INITIAL_CAPITAL) / INITIAL_CAPITAL
   }
 
   def main(args: Array[String]): Unit = {
     val df: DataFrame = spark.read.parquet("src/main/resources/historical-data/data/stocks/AAPL")
-    val tradingDF: DataFrame = tradingFunction(df, indd1: _*)
-    val fitValue = fitnessFunc(tradingDF)
+    val tradingDF: DataFrame = tradingFunc(df, indd1: _*)
+    val fitValue = profitFunc(tradingDF)
     println(fitValue)
     0
   }

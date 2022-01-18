@@ -9,6 +9,8 @@ import mf.dabi.pso.techIndicatorTradingSystem.finance.indicators.SignalIndicator
 import mf.dabi.pso.techIndicatorTradingSystem.settings.Sparkable
 import org.apache.spark.sql.DataFrame
 
+/** Simulacion es para conseguir el dataframe con los pesos iniciale.
+ * Para obtener la columna decision y hacer el experimento esto se hace con tradingFunction */
 trait Simulation extends Sparkable with Transformation {
   def simulation(ticket: String, indicators: SignalIndicator*): DataFrame = {
     val conf = signalConf(indicators: _*)

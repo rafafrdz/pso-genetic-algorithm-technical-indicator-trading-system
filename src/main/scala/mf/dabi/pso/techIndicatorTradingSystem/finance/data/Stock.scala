@@ -1,5 +1,7 @@
 package mf.dabi.pso.techIndicatorTradingSystem.finance.data
 
+import mf.dabi.pso.techIndicatorTradingSystem.algorithm.{PSOAlgorithm, TradingFunction}
+import mf.dabi.pso.techIndicatorTradingSystem.algorithm.space.SearchSpace
 import mf.dabi.pso.techIndicatorTradingSystem.finance.data.adt.StockObject
 import mf.dabi.pso.techIndicatorTradingSystem.finance.data.ingestion.Schema.{Date, Decimal}
 import mf.dabi.pso.techIndicatorTradingSystem.finance.data.ingestion.{Schema, Simulation}
@@ -19,11 +21,15 @@ object Stock extends Sparkable with Simulation {
   case class StockSchema(date: Date, open: Decimal, high: Decimal, low: Decimal, close: Decimal, adj: Decimal, volume: Decimal)
 
   def main(args: Array[String]): Unit = {
-    //    ingest(stocks: _*)
-    transformation(stocksSignals: _*)
-    val sigsc = Simulation.signalConf(indd1: _*)
-    val s = simulation("AAPL", sigsc)
-    s.show(false)
+//        ingest(stocks: _*)
+//    transformation(stocksSignals: _*)
 
+    val space = SearchSpace.build(indd1:_*)
+////    val sigsc = Simulation.signalConf(indd1: _*)
+////    val s = simulation("AAPL", sigsc)
+    val ps = PSOAlgorithm.algorithm(2, 5,space)((0.4,0.9),(0.5,2.5),(0.5,2.5))("AAPL", space.indicators,TradingFunction.profit)
+    println(ps)
+    println(ps.weight)
+    ps.trading.show(false)
   }
 }

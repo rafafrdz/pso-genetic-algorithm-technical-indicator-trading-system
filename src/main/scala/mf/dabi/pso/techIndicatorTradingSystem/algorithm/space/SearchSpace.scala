@@ -5,12 +5,14 @@ import mf.dabi.pso.techIndicatorTradingSystem.algorithm.particle.{ParticleSoluti
 import mf.dabi.pso.techIndicatorTradingSystem.algorithm.space.SearchSpace._
 import mf.dabi.pso.techIndicatorTradingSystem.finance.indicators.SignalIndicator
 
+import java.util.concurrent.ThreadLocalRandom
 import scala.util.Random
 
 trait SearchSpace {
   val dim: Int
   lazy val bound: Bound[Double] = List.fill(dim)((0, 0.9))
   lazy val vBound: Bound[Double] = bound.map { case (l0, lf) => math.abs(l0 - lf) }.map(d => (-d, d))
+  lazy val indicators: List[SignalIndicator] = Nil
 
   /** Get a random Particle bounded by space's bound */
   def rndmX: Particle = rndmP(bound: _*)
@@ -46,8 +48,10 @@ object SearchSpace {
     override lazy val bound: Bound[Double] = limit
   }
 
-  def apply(n: Int, indicator: SignalIndicator*): SearchSpace = new SearchSpace {
-    override val dim: Int = n
+  def build(indicator: SignalIndicator*): SearchSpace = apply(indicator:_*)
+  private def apply(indicator: SignalIndicator*): SearchSpace = new SearchSpace {
+    override val dim: Int = indicator.length
+    override lazy val indicators: List[SignalIndicator] = indicator.toList
   }
 
   def apply(n: Int): SearchSpace = new SearchSpace {
@@ -76,7 +80,10 @@ object SearchSpace {
     DenseVector(p.toArray.zip(bound).map { case (pi, limit) => boundValue(pi, limit) }: _*)
 
   /** Get a random number between `a` and `b` */
-  def rndm(a: Double, b: Double): Double = a + Random.nextDouble() * Random.nextInt(b.toInt)
+  def rndm(a: Double, b: Double): Double = {
+    val (maxv, minv): (Double, Double) = (math.max(a, b), math.min(a, b))
+    ThreadLocalRandom.current().nextDouble(minv, maxv)
+  }
 
   /** Get a random number within [0,1] */
   def rndm01: Double = Random.nextDouble()
