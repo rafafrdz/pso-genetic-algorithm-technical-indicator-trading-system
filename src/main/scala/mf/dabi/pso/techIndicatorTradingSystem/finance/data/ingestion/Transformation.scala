@@ -22,7 +22,7 @@ trait Transformation extends Ingestion {
 
   final def getFinancialSignal[T <: AnalyzedFinanceObject](ticket: String, conf: SignalConf): T = {
     val parquet: DataFrame = Read.parquet(s"$parquetPath/$ticket")
-    val dfsignal: DataFrame = Signal.getSignalDF(parquet, conf.ss.map(_.signal):_*)
+    val dfsignal: DataFrame = Signal.getSignalDF(parquet, conf.ss.map(_.signal): _*)
     finance[T](ticket, s"$dataPath/$ticket", dfsignal)
   }
 

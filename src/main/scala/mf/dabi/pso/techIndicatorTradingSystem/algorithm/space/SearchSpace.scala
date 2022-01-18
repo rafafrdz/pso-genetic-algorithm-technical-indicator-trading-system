@@ -1,12 +1,10 @@
 package mf.dabi.pso.techIndicatorTradingSystem.algorithm.space
 
 import breeze.linalg.DenseVector
-import mf.dabi.pso.techIndicatorTradingSystem.algorithm.ParticleSolution
 import mf.dabi.pso.techIndicatorTradingSystem.algorithm.particle.{ParticleSolution, ParticleTraveller}
 import mf.dabi.pso.techIndicatorTradingSystem.algorithm.space.SearchSpace._
 import mf.dabi.pso.techIndicatorTradingSystem.finance.indicators.SignalIndicator
 
-import scala.collection.parallel.immutable.ParVector
 import scala.util.Random
 
 trait SearchSpace {
@@ -62,7 +60,7 @@ object SearchSpace {
   def rndmW(dim: Int): Particle = {
     val values = (1 to dim).map(j => Random.nextInt(10).toDouble)
     val sum = values.sum
-    DenseVector(values:_*) / sum
+    DenseVector(values: _*) / sum
   }
 
   def rndmV(bound: Limit[Double]*): DenseVector[Double] = {
