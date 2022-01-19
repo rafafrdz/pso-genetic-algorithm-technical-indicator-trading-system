@@ -14,7 +14,8 @@ trait Signal {
 object Signal {
 
   val indd1: List[SignalIndicator] = List(SMA20, SMA100, SMA200, SMA500, MACD, RSI, STO, WLLR)
-  val indd2: List[SignalIndicator] = List(SMA20, SMA100, MACD, RSI, WLLR)
+  val indd2: List[SignalIndicator] = List(SMA100, MACD, RSI, WLLR)
+  val indd3: List[SignalIndicator] = List(SMA100, MACD, RSI,STO, WLLR)
 
   def getIndicators(df: DataFrame, indicators: Indicator*): DataFrame = {
     val persist: DataFrame = df.persist()

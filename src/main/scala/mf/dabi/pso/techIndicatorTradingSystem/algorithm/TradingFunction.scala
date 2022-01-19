@@ -58,8 +58,8 @@ object TradingFunction extends Sparkable {
 
       /** todo. add criterio de compra (peso) para que no sea comprar con todo el capital o vender todas las acciones */
       def buysell(decision: Double, close: Double, capitalNow: Double, amounWeight: Double, accionesNow: Int): (Double, Int) = {
-        lazy val accionesCompra: Int = math.abs(((capitalNow / close) * amounWeight).toInt)
-        lazy val capitalVende: Double = capitalNow + (accionesNow * close)
+        lazy val accionesCompra: Int = math.abs((((capitalNow / 4) / close) * amounWeight).toInt)
+        lazy val capitalVende: Double = capitalNow + (math.abs(amounWeight * accionesNow/4) * close)
         lazy val capitalCompra: Double = capitalNow - (accionesCompra * close)
 
         val acciones: Int = if (decision > thresHoldV) accionesCompra else if (decision < -thresHoldV) 0 else accionesNow

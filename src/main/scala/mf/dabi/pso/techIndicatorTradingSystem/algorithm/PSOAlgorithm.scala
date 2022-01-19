@@ -64,6 +64,7 @@ object PSOAlgorithm {
 
     @tailrec
     def aux(acc: Int)(swarm: SwarmTraveller): ParticleSolution = {
+      require(acc>0)
       val iteration: Int = eval - acc + 1
       logger.h3(s"Iteration: ${iteration}/$eval")
       val tradings: SwarmSolution = doTrading(swarm)(f, indicators)
@@ -72,7 +73,8 @@ object PSOAlgorithm {
 
       logger.h3(s"[Best Particle] Iteration: $iteration - Result: ${bestParticle.result} - Weight: ${bestParticle.weight.data.mkString(", ")}")
       lazy val swarmSk: SwarmTraveller = stepSwarm(acc - 1)(tradingsW, bestParticle, Vector.empty[ParticleTraveller])
-      if (acc == 0) bestParticle else aux(acc - 1)(swarmSk)
+      bestParticle.trading.show(false)
+      if (acc == 1) bestParticle else aux(acc - 1)(swarmSk)
     }
 
     aux(eval)(swarm0)
