@@ -45,7 +45,7 @@ trait Sparkable extends Serializable {
 
   case class Write(df: DataFrame, saveMode: SaveMode = SaveMode.Overwrite) extends SparkIO[Unit] {
     def csv(path: String, header: Boolean = true, sep: String = ","): Unit =
-      df.repartition(6).write.option("header", header).option("sep", sep).csv(path)
+      df.write.option("header", header).option("sep", sep).csv(path)
 
     def parquet(path: String): Unit = df.write.mode(saveMode).parquet(path)
   }
